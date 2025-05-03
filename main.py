@@ -48,6 +48,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         main_layout.addWidget(dynamic_canvas, 1, 0, 5, 1)
         main_layout.addWidget(NavigationToolbar(dynamic_canvas, self), 0, 0)
 
+        dynamic_canvas.figure.set_facecolor("gray")
+
         self.comport_dropdown = QComboBox(self)
         self.comport_dropdown.addItems([f"/dev/{port.name}" for port in serial.tools.list_ports.comports()])
 
@@ -79,11 +81,15 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         main_layout.addWidget(self.export_button, 5, 1, 1, 2)
 
         self._dynamic_ax = dynamic_canvas.figure.subplots()
+        self._dynamic_ax.set_facecolor("gray")
 
         # Set up a Line2D
         self.xdata = np.linspace(0, 2048, num=2048)
         self._update_ydata()
         self._line, = self._dynamic_ax.plot(self.xdata, self.ydata)
+        self._line.set_color('r')
+        self._dynamic_ax.set_xlim(0, 2048)
+        self._dynamic_ax.set_ylim(0, 1023)
 
         # Timers
         self.data_timer = QTimer(self)
@@ -100,8 +106,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     #@pyqtSlot()
     def _update_ydata(self):
         # qDebug("blah", end='')
-        qDebug("blah" + str(self.counter))
-        self.counter += 1
+        
+        
         if hasattr(self, 's'):
             try:
                 if self.s.in_waiting:
@@ -125,9 +131,15 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                     qDebug(f"Recieved {len(self.values)} readings.")
 
                     self.ydata = np.array(self.values)
+                    self._update_canvas()
                     # self._update_canvas()
                     # fig.canvas.draw()
                     # fig.canvas.flush_events()
+                else:
+                    self.s.reset_input_buffer()
+                    self.s.reset_output_buffer()
+                    #qDebug("blah" + str(self.counter) + " " + str(self.s.in_waiting))
+                    #self.counter += 1
             except Exception as e:
                 qDebug("Failed to receive data.")
                 qDebug(e)
@@ -143,7 +155,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         # qDebug('foo', end='')
         # qDebug('foo')
         if self.show_background_subtraction_checkbox.isChecked() and len(self.background) == self.ydata.size:
-            self._line.set_data(self.xdata, self.ydata - np.array(self.background))
+            self._line.set_data(self.xdata, np.array(self.background) - self.ydata)
         else:
             self._line.set_data(self.xdata, self.ydata)
         self._line.figure.canvas.draw_idle()
@@ -154,7 +166,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         try:
             self.s = serial.Serial(self.comport_dropdown.currentText(), 115200, timeout=0)
             qDebug("Connected!")
-            self.s.flush()
+            self.s.reset_input_buffer()
             qDebug(f'{self.s.is_open}')
             self.connect_button.setStyleSheet("background-color : green")
         except:
@@ -164,7 +176,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     @pyqtSlot()
     def on_export_click(self):
         if len(self.values) > 0:
-            with open(f"RamanLog-{datetime.now().strftime("%Y-%m-%d-%H%M%S")}.txt", "w") as file:
+            with open(f"./logs/RamanLog-{datetime.now().strftime("%Y-%m-%d-%H%M%S")}.txt", "w") as file:
                 for i, val in enumerate(self.values):
                     file.write(f"{i+1} {val}\n")
 
@@ -211,38 +223,10 @@ if __name__ == "__main__":
         qapp = QtWidgets.QApplication(sys.argv)
 
     app = ApplicationWindow()
+
+    qapp.setStyleSheet("QWidget { background-color: grey }")
+
     app.show()
     app.activateWindow()
     app.raise_()
     qapp.exec()
-
-    """
-
-    i = 0
-
-    
-    while True:
-        fig.canvas.mpl_connect('close_event', on_close)
-        
-        # y = np.random.random()
-        # #p = plt.plot(np.linspace(1, 2048, num=2048), )
-        # plt.plot()
-        # plt.pause(0.05)
-        # i = i+1
-        
-
-
-        if s.in_waiting:
-            out = s.readline().decode()
-            arr = out.split(', ')
-            arr = arr[0:-1]
-            qDebug(f"Recieved {i}")
-            i = i + 1
-            arr = np.array([int(i) for i in arr])
-
-            lines.set_ydata(arr)
-            fig.canvas.draw()
-            fig.canvas.flush_events()
-
-        plt.pause(0.05)
-        """
