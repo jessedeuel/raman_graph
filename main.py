@@ -74,6 +74,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
         self.set_average_button = QPushButton('Set Average Count', self)
         self.average_count_input = QLineEdit(self)
+
+        self.laser_checkbox = QCheckBox('Laser On', self)
+        self.laser_checkbox.stateChanged.connect(self.on_laser_checkbox_changed)
         
         main_layout.addWidget(self.comport_dropdown, 0, 1, 1, 2)
         main_layout.addWidget(self.connect_button, 2, 1, 1, 2)
@@ -81,8 +84,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         main_layout.addWidget(self.reading_button, 3, 1, 1, 1)
         main_layout.addWidget(self.background_button, 4, 1)
         main_layout.addWidget(self.show_background_subtraction_checkbox, 4, 2)
-        main_layout.addWidget(self.average_count_input, 5, 1, 1, 2)
-        main_layout.addWidget(self.export_button, 6, 1, 1, 2)
+        main_layout.addWidget(self.average_count_input, 6, 1, 1, 2)
+        main_layout.addWidget(self.export_button, 7, 1, 1, 2)
+        main_layout.addWidget(self.laser_checkbox, 5, 1, 1, 2)
 
         self._dynamic_ax = dynamic_canvas.figure.subplots()
         self._dynamic_ax.set_facecolor("grey")
@@ -161,6 +165,14 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self._line.figure.canvas.draw_idle()
 
     @pyqtSlot()
+    def on_laser_checkbox_changed(self):
+        if self.laser_checkbox.isChecked():
+            self.s.write('L'.encode('utf-8'))
+        else:
+            self.s.write('l'.encode('utf-8'))
+
+
+    @pyqtSlot()
     def on_connect_click(self):
         qDebug(f"Attempting to connect to {self.comport_dropdown.currentText()}")
         try:
@@ -198,7 +210,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.ydata = np.zeros([1, 2048])
             
             for i in range(0, avg_count):
-                self.s.flush()
+                #self.s.flush()
                 sent = self.s.write(str(self.integration_time).encode('utf-8'))
 
                 #time.sleep(3.0)
