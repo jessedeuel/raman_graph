@@ -48,10 +48,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         main_layout.addWidget(dynamic_canvas, 1, 0, 5, 1)
         main_layout.addWidget(NavigationToolbar(dynamic_canvas, self), 0, 0)
 
-        dynamic_canvas.figure.set_facecolor("gray")
+        dynamic_canvas.figure.set_facecolor("grey")
 
         self.comport_dropdown = QComboBox(self)
-        self.comport_dropdown.addItems([f"/dev/{port.name}" for port in serial.tools.list_ports.comports()])
+        self.comport_dropdown.addItems([port.device for port in serial.tools.list_ports.comports()])
 
         self.connect_button = QPushButton('Connect', self)
         self.connect_button.clicked.connect(self.on_connect_click)
@@ -71,6 +71,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
         self.export_button = QPushButton('Export CSV', self)
         self.export_button.clicked.connect(self.on_export_click)
+
+        self.set_average_button = QPushButton('Set Average Count', self)
+        self.average_count_input = QLineEdit(self)
         
         main_layout.addWidget(self.comport_dropdown, 0, 1, 1, 2)
         main_layout.addWidget(self.connect_button, 2, 1, 1, 2)
@@ -78,10 +81,12 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         main_layout.addWidget(self.reading_button, 3, 1, 1, 1)
         main_layout.addWidget(self.background_button, 4, 1)
         main_layout.addWidget(self.show_background_subtraction_checkbox, 4, 2)
-        main_layout.addWidget(self.export_button, 5, 1, 1, 2)
+        main_layout.addWidget(self.average_count_input, 5, 1, 1, 2)
+        main_layout.addWidget(self.export_button, 6, 1, 1, 2)
 
         self._dynamic_ax = dynamic_canvas.figure.subplots()
-        self._dynamic_ax.set_facecolor("gray")
+        self._dynamic_ax.set_facecolor("grey")
+        self._dynamic_ax.grid(True)
 
         # Set up a Line2D
         self.xdata = np.linspace(0, 2048, num=2048)
@@ -125,12 +130,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                     #     else:
                     #         out += tmp
 
-                    out = self.s.readline().decode()
-                    qDebug("done reading")
-                    self.values = [int(i) for i in out.split(', ')[0:-1]]
-                    qDebug(f"Recieved {len(self.values)} readings.")
-
-                    self.ydata = np.array(self.values)
+                    
                     self._update_canvas()
                     # self._update_canvas()
                     # fig.canvas.draw()
@@ -176,7 +176,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     @pyqtSlot()
     def on_export_click(self):
         if len(self.values) > 0:
-            with open(f"./logs/RamanLog-{datetime.now().strftime("%Y-%m-%d-%H%M%S")}.txt", "w") as file:
+            with open(f"./logs/RamanLog-{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.txt", "w") as file:
                 for i, val in enumerate(self.values):
                     file.write(f"{i+1} {val}\n")
 
@@ -190,11 +190,40 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 qDebug("Invalid integration time")
                 return
             
-            sent = self.s.write(str(self.integration_time).encode('utf-8'))
-            if sent > 0:
-                qDebug(f"Requested reading with integration time {self.integration_time}ms")
-            else:
-                qDebug("Failed to request raman data.")
+            try:
+                avg_count = int(self.average_count_input.text())
+            except:
+                avg_count = 1
+
+            self.ydata = np.zeros([1, 2048])
+            
+            for i in range(0, avg_count):
+                self.s.flush()
+                sent = self.s.write(str(self.integration_time).encode('utf-8'))
+
+                #time.sleep(3.0)
+
+                if sent > 0:
+                    qDebug(f"Requested reading with integration time {self.integration_time}ms")
+                else:
+                    qDebug("Failed to request raman data.")
+
+                while not self.s.in_waiting:
+                    pass
+
+                out = self.s.readline().decode()
+                qDebug("done reading")
+                qDebug(out)
+                self.values = [int(i) for i in out.split(', ')[0:-1]]
+                qDebug(f"Recieved {len(self.values)} readings.")
+
+                if len(self.values) == 2048:
+                    self.ydata += np.array(self.values)
+                else:
+                    qDebug("Did not receive expected number of readings.")
+
+            self.ydata /= avg_count
+
         else:
             qDebug("Not connected to any port.")
 
