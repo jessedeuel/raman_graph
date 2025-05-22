@@ -14,8 +14,10 @@ from matplotlib.backends.backend_qtagg import \
 from matplotlib.backends.qt_compat import QtWidgets
 from matplotlib.figure import Figure
 
-from PyQt5.QtWidgets import QWidget, QPushButton, QCheckBox, QComboBox, QLineEdit, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QPushButton, QCheckBox, QComboBox, QLineEdit, QSizePolicy, QLabel
 from PyQt5.QtCore import pyqtSlot, QTimer, qDebug
+
+background_color = "white"
 
 class ApplicationWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -48,7 +50,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         main_layout.addWidget(dynamic_canvas, 1, 0, 5, 1)
         main_layout.addWidget(NavigationToolbar(dynamic_canvas, self), 0, 0)
 
-        dynamic_canvas.figure.set_facecolor("grey")
+        dynamic_canvas.figure.set_facecolor(background_color)
 
         self.comport_dropdown = QComboBox(self)
         self.comport_dropdown.addItems([port.device for port in serial.tools.list_ports.comports()])
@@ -77,6 +79,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
         self.laser_checkbox = QCheckBox('Laser On', self)
         self.laser_checkbox.stateChanged.connect(self.on_laser_checkbox_changed)
+
+        self.file_name_label = QLabel("File name")
+        self.file_name_textbox = QLineEdit()
         
         main_layout.addWidget(self.comport_dropdown, 0, 1, 1, 2)
         main_layout.addWidget(self.connect_button, 2, 1, 1, 2)
@@ -84,12 +89,14 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         main_layout.addWidget(self.reading_button, 3, 1, 1, 1)
         main_layout.addWidget(self.background_button, 4, 1)
         main_layout.addWidget(self.show_background_subtraction_checkbox, 4, 2)
-        main_layout.addWidget(self.average_count_input, 6, 1, 1, 2)
-        main_layout.addWidget(self.export_button, 7, 1, 1, 2)
         main_layout.addWidget(self.laser_checkbox, 5, 1, 1, 2)
+        main_layout.addWidget(self.average_count_input, 6, 1, 1, 2)
+        main_layout.addWidget(self.file_name_label, 7, 1, 1, 1)
+        main_layout.addWidget(self.file_name_textbox, 7, 2, 1, 1)
+        main_layout.addWidget(self.export_button, 8, 1, 1, 2)
 
         self._dynamic_ax = dynamic_canvas.figure.subplots()
-        self._dynamic_ax.set_facecolor("grey")
+        self._dynamic_ax.set_facecolor(background_color)
         self._dynamic_ax.grid(True)
 
         # Set up a Line2D
@@ -188,9 +195,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     @pyqtSlot()
     def on_export_click(self):
         if len(self.values) > 0:
-            with open(f"./logs/RamanLog-{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.txt", "w") as file:
+            with open(f"./logs/{"RamanLog" if (self.file_name_textbox.text() == '') else self.file_name_textbox.text()}-{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.txt", "w") as file:
                 for i, val in enumerate(self.values):
-                    file.write(f"{i+1} {val}\n")
+                    file.write(f"{val}\n")
 
 
     @pyqtSlot()
@@ -213,7 +220,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 #self.s.flush()
                 sent = self.s.write(str(self.integration_time).encode('utf-8'))
 
-                #time.sleep(3.0)
+                #time.sleep(3.0)\
 
                 if sent > 0:
                     qDebug(f"Requested reading with integration time {self.integration_time}ms")
@@ -265,7 +272,7 @@ if __name__ == "__main__":
 
     app = ApplicationWindow()
 
-    qapp.setStyleSheet("QWidget { background-color: grey }")
+    qapp.setStyleSheet(f'QWidget {{ background-color: {background_color} }}')
 
     app.show()
     app.activateWindow()
