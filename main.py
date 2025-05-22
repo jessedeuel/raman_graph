@@ -74,8 +74,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.export_button = QPushButton('Export CSV', self)
         self.export_button.clicked.connect(self.on_export_click)
 
-        self.set_average_button = QPushButton('Set Average Count', self)
-        self.average_count_input = QLineEdit(self)
+        #self.set_average_button = QPushButton('Set Average Count', self)
+        #self.average_count_input = QLineEdit(self)
 
         self.laser_checkbox = QCheckBox('Laser On', self)
         self.laser_checkbox.stateChanged.connect(self.on_laser_checkbox_changed)
@@ -90,7 +90,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         main_layout.addWidget(self.background_button, 4, 1)
         main_layout.addWidget(self.show_background_subtraction_checkbox, 4, 2)
         main_layout.addWidget(self.laser_checkbox, 5, 1, 1, 2)
-        main_layout.addWidget(self.average_count_input, 6, 1, 1, 2)
+        #main_layout.addWidget(self.average_count_input, 6, 1, 1, 2)
         main_layout.addWidget(self.file_name_label, 7, 1, 1, 1)
         main_layout.addWidget(self.file_name_textbox, 7, 2, 1, 1)
         main_layout.addWidget(self.export_button, 8, 1, 1, 2)
