@@ -17,7 +17,8 @@ from matplotlib.figure import Figure
 from PyQt5.QtWidgets import QWidget, QPushButton, QCheckBox, QComboBox, QLineEdit, QSizePolicy, QLabel
 from PyQt5.QtCore import pyqtSlot, QTimer, qDebug
 
-background_color = "white"
+background_color = "grey"
+graph_color = 'r'
 
 class ApplicationWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -103,7 +104,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.xdata = np.linspace(0, 2048, num=2048)
         self._update_ydata()
         self._line, = self._dynamic_ax.plot(self.xdata, self.ydata)
-        self._line.set_color('r')
+        self._line.set_color(graph_color)
         self._dynamic_ax.set_xlim(0, 2048)
         self._dynamic_ax.set_ylim(0, 1023)
 
@@ -115,7 +116,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
         self.drawing_timer = QTimer(self) #QTimer(self) 
         self.drawing_timer.timeout.connect(self._update_canvas) #add_callback
-        #self.drawing_timer.setInterval(500)
         self.drawing_timer.start(500)
         self._update_canvas()
 
@@ -273,6 +273,7 @@ if __name__ == "__main__":
     app = ApplicationWindow()
 
     qapp.setStyleSheet(f'QWidget {{ background-color: {background_color} }}')
+    qapp.setStyleSheet
 
     app.show()
     app.activateWindow()
